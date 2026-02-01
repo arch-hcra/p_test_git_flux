@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: victoria-metrics
+  namespace: your-cluster
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: victoria-metrics
+  template:
+    metadata:
+      labels:
+        app: victoria-metrics
+    spec:
+      containers:
+        - name: victoria-metrics
+          image: victoriametrics/vmstorage:v1.98.0
+          args:
+            - --storageDataPath=/storage
+            - --retentionPeriod=60d
+            - --httpListenAddr=:8428
+          ports:
+            - containerPort: 8428
+          volumeMounts:
+            - name: storage-volume
+              mountPath: /storage
+      volumes:
+        - name: storage-volume
+          persistentVolumeClaim:
+            claimName: victoria-metrics-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: victoria-metrics
+  namespace: your-cluster
+spec:
+  selector:
+    app: victoria-metrics
+  ports:
+    - protocol: TCP
+      port: 8428
+      targetPort: 8428
+  type: ClusterIP

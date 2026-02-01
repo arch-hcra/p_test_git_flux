@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vmagent
+  namespace: your-cluster
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vmagent
+  template:
+    metadata:
+      labels:
+        app: vmagent
+    spec:
+      containers:
+        - name: vmagent
+          image: victoriametrics/vmagent:v1.98.0
+          args:
+            - --promscrape.config=/etc/vmagent/config/vmagent-config.yaml
+            - --remoteWrite.url=http://victoria-metrics.your-cluster.svc.cluster.local:8428/api/v1/write
+          ports:
+            - containerPort: 8429
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/vmagent/config
+      volumes:
+        - name: config-volume
+          configMap:
+            name: vmagent-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vmagent
+  namespace: your-cluster
+spec:
+  selector:
+    app: vmagent
+  ports:
+    - protocol: TCP
+      port: 8429
+      targetPort: 8429
+  type: ClusterIP
